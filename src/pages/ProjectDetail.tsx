@@ -12,9 +12,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import ProjectActions from "@/components/ProjectActions";
 
+// Update the ProjectProps interface to include creator_id
+interface ExtendedProjectProps extends ProjectProps {
+  creator_id?: string;
+}
+
 const ProjectDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const [project, setProject] = useState<ProjectProps | null>(null);
+  const [project, setProject] = useState<ExtendedProjectProps | null>(null);
   const [voteCount, setVoteCount] = useState(0);
   const [hasVoted, setHasVoted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -141,10 +146,10 @@ const ProjectDetail = () => {
           <div className="bg-white shadow overflow-hidden rounded-lg">
             <div className="px-4 py-5 sm:px-6">
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
-                <h1 className="text-2xl font-bold text-gray-900 mb-2 sm:mb-0">{project.title}</h1>
-                <Badge className={`${getTypeBadgeClass(project.type)} flex items-center`}>
-                  {getTypeIcon(project.type)}
-                  <span className="ml-1">{getTypeLabel(project.type)}</span>
+                <h1 className="text-2xl font-bold text-gray-900 mb-2 sm:mb-0">{project?.title}</h1>
+                <Badge className={`${getTypeBadgeClass(project?.type || 'other')} flex items-center`}>
+                  {getTypeIcon(project?.type || 'other')}
+                  <span className="ml-1">{getTypeLabel(project?.type || 'other')}</span>
                 </Badge>
               </div>
             </div>
@@ -152,7 +157,7 @@ const ProjectDetail = () => {
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <div className="flex items-center">
                   <MapPin className="h-5 w-5 text-gray-400 mr-2" />
-                  <span className="text-gray-700">{project.location}</span>
+                  <span className="text-gray-700">{project?.location}</span>
                 </div>
                 <div className="flex items-center">
                   <Calendar className="h-5 w-5 text-gray-400 mr-2" />
@@ -162,7 +167,7 @@ const ProjectDetail = () => {
             </div>
             <div className="border-t border-gray-200 px-4 py-5 sm:px-6">
               <h3 className="text-lg font-medium text-gray-900 mb-2">Project Description</h3>
-              <p className="text-gray-700 whitespace-pre-line">{project.description}</p>
+              <p className="text-gray-700 whitespace-pre-line">{project?.description}</p>
             </div>
 
             <div className="border-t border-gray-200 px-4 py-5 sm:px-6">
@@ -175,15 +180,17 @@ const ProjectDetail = () => {
             </div>
 
             <div className="border-t border-gray-200 px-4 py-5 sm:px-6">
-              <ProjectActions 
-                projectId={project.id}
-                creatorId={creatorId}
-                user={user}
-                voteCount={voteCount}
-                hasVoted={hasVoted}
-                setHasVoted={setHasVoted}
-                setVoteCount={setVoteCount}
-              />
+              {project && (
+                <ProjectActions 
+                  projectId={project.id}
+                  creatorId={creatorId}
+                  user={user}
+                  voteCount={voteCount}
+                  hasVoted={hasVoted}
+                  setHasVoted={setHasVoted}
+                  setVoteCount={setVoteCount}
+                />
+              )}
             </div>
           </div>
         </div>

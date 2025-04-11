@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -12,9 +11,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Trash, Scissors, LeafyGreen, Paintbrush } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const NewProject = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
@@ -23,6 +24,12 @@ const NewProject = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!user) {
+      toast.error("You must be signed in to create a project");
+      navigate("/auth");
+      return;
+    }
     
     if (!title || !description || !location || !type) {
       toast.error("Please fill out all required fields");
@@ -37,7 +44,8 @@ const NewProject = () => {
         description,
         location,
         type,
-        votes: 0
+        votes: 0,
+        creator_id: user.id
       };
       
       const { data, error } = await supabase

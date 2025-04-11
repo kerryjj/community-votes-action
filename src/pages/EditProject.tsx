@@ -39,11 +39,16 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
+// Extended type to include creator_id
+interface ExtendedProjectProps extends ProjectProps {
+  creator_id?: string;
+}
+
 const EditProject = () => {
   const { id } = useParams<{ id: string }>();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [project, setProject] = useState<ProjectProps | null>(null);
+  const [project, setProject] = useState<ExtendedProjectProps | null>(null);
   const navigate = useNavigate();
   const { user } = useAuth();
 
