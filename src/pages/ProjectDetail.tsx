@@ -1,15 +1,16 @@
+
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ProjectProps, validateProjectType } from "@/components/ProjectCard";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Trash, Scissors, LeafyGreen, Paintbrush, ThumbsUp, MapPin, Calendar, ArrowLeft } from "lucide-react";
+import { Trash, Scissors, LeafyGreen, Paintbrush, MapPin, Calendar, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import ProjectActions from "@/components/ProjectActions";
 
 const ProjectDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -17,6 +18,9 @@ const ProjectDetail = () => {
   const [voteCount, setVoteCount] = useState(0);
   const [hasVoted, setHasVoted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [creatorId, setCreatorId] = useState<string | undefined>(undefined);
+
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -43,6 +47,11 @@ const ProjectDetail = () => {
           
           setProject(validatedProject);
           setVoteCount(data.votes);
+          
+          // Store creator ID if available
+          if (data.creator_id) {
+            setCreatorId(data.creator_id);
+          }
         }
       } catch (error) {
         console.error("Failed to fetch project:", error);
@@ -53,8 +62,6 @@ const ProjectDetail = () => {
 
     fetchProject();
   }, [id]);
-
-  const { user } = useAuth();
 
   const getTypeIcon = (type: "cleanup" | "weeds" | "graffiti" | "other") => {
     switch (type) {
@@ -93,56 +100,6 @@ const ProjectDetail = () => {
       default:
         return "Other";
     }
-  };
-
-  const handleVote = async () => {
-    if (!project) return;
-    
-    // Check if user is logged in
-    if (!user) {
-      // Redirect to auth page
-      window.location.href = `/auth?redirect=${encodeURIComponent(window.location.pathname)}`;
-      return;
-    }
-    
-    try {
-      const newVoteCount = hasVoted ? voteCount - 1 : voteCount + 1;
-      
-      const { error } = await supabase
-        .from('projects')
-        .update({ votes: newVoteCount })
-        .eq('id', project.id);
-      
-      if (error) {
-        console.error("Error updating vote:", error);
-        toast.error("Failed to update vote. Please try again.");
-        return;
-      }
-      
-      if (!hasVoted) {
-        setVoteCount(voteCount + 1);
-        setHasVoted(true);
-        toast.success("Your vote has been counted!");
-      } else {
-        setVoteCount(voteCount - 1);
-        setHasVoted(false);
-        toast.info("Your vote has been removed");
-      }
-    } catch (error) {
-      console.error("Failed to update vote:", error);
-      toast.error("An error occurred. Please try again later.");
-    }
-  };
-
-  const handleVolunteer = () => {
-    // Check if user is logged in
-    if (!user) {
-      // Redirect to auth page
-      window.location.href = `/auth?redirect=${encodeURIComponent(window.location.pathname)}`;
-      return;
-    }
-    
-    toast.success("Thanks for volunteering! We'll be in touch with details.");
   };
 
   if (isLoading) {
@@ -217,21 +174,16 @@ const ProjectDetail = () => {
               </Card>
             </div>
 
-            <div className="border-t border-gray-200 px-4 py-5 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <Button 
-                variant={hasVoted ? "default" : "outline"} 
-                className={`w-full sm:w-auto ${hasVoted ? "bg-community-purple hover:bg-community-dark-purple" : ""}`}
-                onClick={handleVote}
-              >
-                <ThumbsUp className="h-5 w-5 mr-2" />
-                <span>{voteCount} Votes</span>
-              </Button>
-              <Button 
-                className="w-full sm:w-auto bg-community-green hover:bg-community-green/80" 
-                onClick={handleVolunteer}
-              >
-                Volunteer for This Project
-              </Button>
+            <div className="border-t border-gray-200 px-4 py-5 sm:px-6">
+              <ProjectActions 
+                projectId={project.id}
+                creatorId={creatorId}
+                user={user}
+                voteCount={voteCount}
+                hasVoted={hasVoted}
+                setHasVoted={setHasVoted}
+                setVoteCount={setVoteCount}
+              />
             </div>
           </div>
         </div>
