@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trash, Scissors, LeafyGreen, Paintbrush } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const NewProject = () => {
   const navigate = useNavigate();
@@ -20,7 +21,7 @@ const NewProject = () => {
   const [type, setType] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!title || !description || !location || !type) {
@@ -30,12 +31,40 @@ const NewProject = () => {
     
     setIsSubmitting(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      const newProject = {
+        title,
+        description,
+        location,
+        type,
+        votes: 0
+      };
+      
+      const { data, error } = await supabase
+        .from('projects')
+        .insert(newProject)
+        .select();
+      
+      if (error) {
+        console.error("Error submitting project:", error);
+        toast.error("Failed to submit project. Please try again.");
+        return;
+      }
+      
       toast.success("Project submitted successfully!");
-      navigate("/projects");
-    }, 1000);
+      
+      // Navigate to the newly created project or projects page
+      if (data && data.length > 0) {
+        navigate(`/project/${data[0].id}`);
+      } else {
+        navigate("/projects");
+      }
+    } catch (error) {
+      console.error("Failed to submit project:", error);
+      toast.error("An error occurred. Please try again later.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

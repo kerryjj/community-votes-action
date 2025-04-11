@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ProjectCard, { ProjectProps } from "@/components/ProjectCard";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -7,63 +7,40 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Search, ArrowUpDown } from "lucide-react";
-
-const allProjects: ProjectProps[] = [
-  {
-    id: "1",
-    title: "Riverbank Cleanup",
-    description: "Help clean up trash along the riverside park. We'll provide gloves and bags. Join us for a cleaner community!",
-    location: "Riverside Park, Main Street",
-    type: "cleanup",
-    votes: 24,
-  },
-  {
-    id: "2",
-    title: "Community Garden Weeding",
-    description: "The community garden needs help with removing invasive weeds. Bring gardening tools if you have them!",
-    location: "Community Garden, Oak Avenue",
-    type: "weeds",
-    votes: 18,
-  },
-  {
-    id: "3",
-    title: "Playground Graffiti Removal",
-    description: "The children's playground has been vandalized with graffiti. Help us restore it to a family-friendly space.",
-    location: "Central Park Playground",
-    type: "graffiti",
-    votes: 32,
-  },
-  {
-    id: "4",
-    title: "Park Bench Restoration",
-    description: "Several benches in the central park need repainting and minor repairs. Help us make them beautiful and safe again.",
-    location: "Central Park, East Entrance",
-    type: "other",
-    votes: 15,
-  },
-  {
-    id: "5",
-    title: "Highway Entrance Cleanup",
-    description: "The entrance to our community from the highway is littered with trash. Let's clean it up to make a better first impression.",
-    location: "Highway 101 Entrance",
-    type: "cleanup",
-    votes: 29,
-  },
-  {
-    id: "6",
-    title: "Elementary School Garden",
-    description: "Help maintain the garden at the local elementary school. We need to remove weeds and plant new seasonal flowers.",
-    location: "Lincoln Elementary School",
-    type: "weeds",
-    votes: 22,
-  }
-];
+import { supabase } from "@/integrations/supabase/client";
 
 const ProjectsPage = () => {
-  const [projects, setProjects] = useState<ProjectProps[]>(allProjects);
+  const [projects, setProjects] = useState<ProjectProps[]>([]);
+  const [allProjects, setAllProjects] = useState<ProjectProps[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [projectType, setProjectType] = useState<string>("all");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('projects')
+          .select('*')
+          .order('votes', { ascending: false });
+        
+        if (error) {
+          console.error("Error fetching projects:", error);
+          return;
+        }
+        
+        setAllProjects(data || []);
+        setProjects(data || []);
+      } catch (error) {
+        console.error("Failed to fetch projects:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProjects();
+  }, []);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
@@ -154,7 +131,13 @@ const ProjectsPage = () => {
             </Button>
           </div>
 
-          {projects.length > 0 ? (
+          {isLoading ? (
+            <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="h-64 bg-gray-200 rounded-lg animate-pulse"></div>
+              ))}
+            </div>
+          ) : projects.length > 0 ? (
             <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
               {projects.map((project) => (
                 <ProjectCard key={project.id} {...project} />

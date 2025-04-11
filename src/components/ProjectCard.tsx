@@ -6,6 +6,7 @@ import { Trash, Scissors, LeafyGreen, Paintbrush, ThumbsUp } from "lucide-react"
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 type ProjectType = "cleanup" | "weeds" | "graffiti" | "other";
 
@@ -17,11 +18,14 @@ export interface ProjectProps {
   type: ProjectType;
   votes: number;
   image?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 const ProjectCard = ({ id, title, description, location, type, votes, image }: ProjectProps) => {
   const [voteCount, setVoteCount] = useState(votes);
   const [hasVoted, setHasVoted] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const getTypeIcon = (type: ProjectType) => {
     switch (type) {
@@ -62,15 +66,38 @@ const ProjectCard = ({ id, title, description, location, type, votes, image }: P
     }
   };
 
-  const handleVote = () => {
-    if (!hasVoted) {
-      setVoteCount(voteCount + 1);
-      setHasVoted(true);
-      toast.success("Your vote has been counted!");
-    } else {
-      setVoteCount(voteCount - 1);
-      setHasVoted(false);
-      toast.info("Your vote has been removed");
+  const handleVote = async () => {
+    if (isUpdating) return;
+    setIsUpdating(true);
+    
+    try {
+      const newVoteCount = hasVoted ? voteCount - 1 : voteCount + 1;
+      
+      const { error } = await supabase
+        .from('projects')
+        .update({ votes: newVoteCount })
+        .eq('id', id);
+      
+      if (error) {
+        console.error("Error updating vote:", error);
+        toast.error("Failed to update vote. Please try again.");
+        return;
+      }
+      
+      if (!hasVoted) {
+        setVoteCount(voteCount + 1);
+        setHasVoted(true);
+        toast.success("Your vote has been counted!");
+      } else {
+        setVoteCount(voteCount - 1);
+        setHasVoted(false);
+        toast.info("Your vote has been removed");
+      }
+    } catch (error) {
+      console.error("Failed to update vote:", error);
+      toast.error("An error occurred. Please try again later.");
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -101,6 +128,7 @@ const ProjectCard = ({ id, title, description, location, type, votes, image }: P
           variant={hasVoted ? "default" : "outline"} 
           className={hasVoted ? "bg-community-purple hover:bg-community-dark-purple" : ""}
           onClick={handleVote}
+          disabled={isUpdating}
         >
           <ThumbsUp className="h-4 w-4 mr-1" />
           <span>{voteCount}</span>

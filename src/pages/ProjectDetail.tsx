@@ -9,70 +9,43 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Trash, Scissors, LeafyGreen, Paintbrush, ThumbsUp, MapPin, Calendar, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
-
-const allProjects: ProjectProps[] = [
-  {
-    id: "1",
-    title: "Riverbank Cleanup",
-    description: "Help clean up trash along the riverside park. We'll provide gloves and bags. Join us for a cleaner community! This area has become polluted over time with various types of litter, including plastic bottles, food wrappers, and other debris that are harmful to the local ecosystem. The cleanup will focus on the main pathway and the areas directly adjacent to the water. This is a great opportunity for families, as children can participate under adult supervision.",
-    location: "Riverside Park, Main Street",
-    type: "cleanup",
-    votes: 24,
-  },
-  {
-    id: "2",
-    title: "Community Garden Weeding",
-    description: "The community garden needs help with removing invasive weeds. Bring gardening tools if you have them! The garden has several invasive species that are threatening the growth of our vegetables and flowers. We'll be focusing on removing these weeds without disturbing the surrounding plants. Basic gardening knowledge is helpful but not required as we'll have experienced gardeners on site to provide guidance. Please bring gloves, small gardening tools if you have them, and a water bottle.",
-    location: "Community Garden, Oak Avenue",
-    type: "weeds",
-    votes: 18,
-  },
-  {
-    id: "3",
-    title: "Playground Graffiti Removal",
-    description: "The children's playground has been vandalized with graffiti. Help us restore it to a family-friendly space. The graffiti is primarily on the main play structure and surrounding walls. We'll be using environmentally-friendly cleaning solutions that are safe for both children and the environment. Experience with graffiti removal is a plus, but not necessary. We'll have all the supplies needed, including cleaning solutions, brushes, and protective gear.",
-    location: "Central Park Playground",
-    type: "graffiti",
-    votes: 32,
-  },
-  {
-    id: "4",
-    title: "Park Bench Restoration",
-    description: "Several benches in the central park need repainting and minor repairs. Help us make them beautiful and safe again. The benches have been weathered over time and some have minor damage like loose boards or chipped paint. We'll be sanding down the rough areas, replacing any damaged parts, and applying fresh paint. Basic carpentry skills are helpful but not required. We'll have all necessary tools and materials, including sandpaper, hammers, nails, and paint.",
-    location: "Central Park, East Entrance",
-    type: "other",
-    votes: 15,
-  },
-  {
-    id: "5",
-    title: "Highway Entrance Cleanup",
-    description: "The entrance to our community from the highway is littered with trash. Let's clean it up to make a better first impression. This area gets a lot of windblown trash and litter from passing vehicles. We'll be focusing on both sides of the entrance road, collecting trash in bags for proper disposal. This project requires participants to be at least 16 years old due to proximity to traffic. High-visibility vests will be provided for safety. Please bring sturdy gloves and wear closed-toe shoes.",
-    location: "Highway 101 Entrance",
-    type: "cleanup",
-    votes: 29,
-  },
-  {
-    id: "6",
-    title: "Elementary School Garden",
-    description: "Help maintain the garden at the local elementary school. We need to remove weeds and plant new seasonal flowers. The school garden is an educational resource for students, and we want to keep it looking beautiful and functioning well. We'll be weeding the existing beds, adding fresh soil, and planting new seasonal flowers that will bloom throughout the school year. This is a family-friendly activity, and children are welcome to participate with their parents. Basic gardening knowledge is helpful but not required.",
-    location: "Lincoln Elementary School",
-    type: "weeds",
-    votes: 22,
-  }
-];
+import { supabase } from "@/integrations/supabase/client";
 
 const ProjectDetail = () => {
   const { id } = useParams<{ id: string }>();
   const [project, setProject] = useState<ProjectProps | null>(null);
   const [voteCount, setVoteCount] = useState(0);
   const [hasVoted, setHasVoted] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const foundProject = allProjects.find(p => p.id === id);
-    if (foundProject) {
-      setProject(foundProject);
-      setVoteCount(foundProject.votes);
-    }
+    const fetchProject = async () => {
+      if (!id) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('projects')
+          .select('*')
+          .eq('id', id)
+          .single();
+        
+        if (error) {
+          console.error("Error fetching project:", error);
+          return;
+        }
+        
+        if (data) {
+          setProject(data);
+          setVoteCount(data.votes);
+        }
+      } catch (error) {
+        console.error("Failed to fetch project:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProject();
   }, [id]);
 
   const getTypeIcon = (type: "cleanup" | "weeds" | "graffiti" | "other") => {
@@ -114,21 +87,53 @@ const ProjectDetail = () => {
     }
   };
 
-  const handleVote = () => {
-    if (!hasVoted) {
-      setVoteCount(voteCount + 1);
-      setHasVoted(true);
-      toast.success("Your vote has been counted!");
-    } else {
-      setVoteCount(voteCount - 1);
-      setHasVoted(false);
-      toast.info("Your vote has been removed");
+  const handleVote = async () => {
+    if (!project) return;
+    
+    try {
+      const newVoteCount = hasVoted ? voteCount - 1 : voteCount + 1;
+      
+      const { error } = await supabase
+        .from('projects')
+        .update({ votes: newVoteCount })
+        .eq('id', project.id);
+      
+      if (error) {
+        console.error("Error updating vote:", error);
+        toast.error("Failed to update vote. Please try again.");
+        return;
+      }
+      
+      if (!hasVoted) {
+        setVoteCount(voteCount + 1);
+        setHasVoted(true);
+        toast.success("Your vote has been counted!");
+      } else {
+        setVoteCount(voteCount - 1);
+        setHasVoted(false);
+        toast.info("Your vote has been removed");
+      }
+    } catch (error) {
+      console.error("Failed to update vote:", error);
+      toast.error("An error occurred. Please try again later.");
     }
   };
 
   const handleVolunteer = () => {
     toast.success("Thanks for volunteering! We'll be in touch with details.");
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-grow flex items-center justify-center">
+          <div className="animate-pulse w-full max-w-4xl h-96 bg-gray-200 rounded-lg"></div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!project) {
     return (
