@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ProjectProps, validateProjectType } from "@/components/ProjectCard";
@@ -10,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Trash, Scissors, LeafyGreen, Paintbrush, ThumbsUp, MapPin, Calendar, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const ProjectDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -54,6 +54,8 @@ const ProjectDetail = () => {
     fetchProject();
   }, [id]);
 
+  const { user } = useAuth();
+
   const getTypeIcon = (type: "cleanup" | "weeds" | "graffiti" | "other") => {
     switch (type) {
       case "cleanup":
@@ -96,6 +98,13 @@ const ProjectDetail = () => {
   const handleVote = async () => {
     if (!project) return;
     
+    // Check if user is logged in
+    if (!user) {
+      // Redirect to auth page
+      window.location.href = `/auth?redirect=${encodeURIComponent(window.location.pathname)}`;
+      return;
+    }
+    
     try {
       const newVoteCount = hasVoted ? voteCount - 1 : voteCount + 1;
       
@@ -126,6 +135,13 @@ const ProjectDetail = () => {
   };
 
   const handleVolunteer = () => {
+    // Check if user is logged in
+    if (!user) {
+      // Redirect to auth page
+      window.location.href = `/auth?redirect=${encodeURIComponent(window.location.pathname)}`;
+      return;
+    }
+    
     toast.success("Thanks for volunteering! We'll be in touch with details.");
   };
 
