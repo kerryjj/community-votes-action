@@ -8,7 +8,7 @@ import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
-type ProjectType = "cleanup" | "weeds" | "graffiti" | "other";
+export type ProjectType = "cleanup" | "weeds" | "graffiti" | "other";
 
 export interface ProjectProps {
   id: string;
@@ -21,6 +21,14 @@ export interface ProjectProps {
   created_at?: string;
   updated_at?: string;
 }
+
+// Helper function to validate project type
+export const validateProjectType = (type: string): ProjectType => {
+  if (["cleanup", "weeds", "graffiti", "other"].includes(type)) {
+    return type as ProjectType;
+  }
+  return "other";
+};
 
 const ProjectCard = ({ id, title, description, location, type, votes, image }: ProjectProps) => {
   const [voteCount, setVoteCount] = useState(votes);

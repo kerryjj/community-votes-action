@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ProjectProps } from "@/components/ProjectCard";
+import { ProjectProps, validateProjectType } from "@/components/ProjectCard";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -35,7 +35,13 @@ const ProjectDetail = () => {
         }
         
         if (data) {
-          setProject(data);
+          // Transform and validate the data before setting state
+          const validatedProject = {
+            ...data,
+            type: validateProjectType(data.type)
+          };
+          
+          setProject(validatedProject);
           setVoteCount(data.votes);
         }
       } catch (error) {

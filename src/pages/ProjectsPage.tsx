@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import ProjectCard, { ProjectProps } from "@/components/ProjectCard";
+import ProjectCard, { ProjectProps, validateProjectType } from "@/components/ProjectCard";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Input } from "@/components/ui/input";
@@ -30,8 +30,14 @@ const ProjectsPage = () => {
           return;
         }
         
-        setAllProjects(data || []);
-        setProjects(data || []);
+        // Transform and validate the data before setting state
+        const validatedProjects = data?.map(project => ({
+          ...project,
+          type: validateProjectType(project.type)
+        })) || [];
+        
+        setAllProjects(validatedProjects);
+        setProjects(validatedProjects);
       } catch (error) {
         console.error("Failed to fetch projects:", error);
       } finally {

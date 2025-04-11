@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import ProjectCard, { ProjectProps } from "./ProjectCard";
+import ProjectCard, { ProjectProps, validateProjectType } from "./ProjectCard";
 import { supabase } from "@/integrations/supabase/client";
 
 const FeaturedProjects = () => {
@@ -21,7 +21,13 @@ const FeaturedProjects = () => {
           return;
         }
         
-        setProjects(data || []);
+        // Transform and validate the data before setting state
+        const validatedProjects = data?.map(project => ({
+          ...project,
+          type: validateProjectType(project.type)
+        })) || [];
+        
+        setProjects(validatedProjects);
       } catch (error) {
         console.error("Failed to fetch projects:", error);
       } finally {
